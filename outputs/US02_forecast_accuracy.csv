@@ -1,0 +1,21 @@
+Seasonality,Category,Avg Forecast Error (MAE)
+Autumn,Clothing,8.311644937586685
+Autumn,Electronics,8.232855137563167
+Autumn,Furniture,8.550807313642757
+Autumn,Groceries,8.29337665854319
+Autumn,Toys,8.21752
+Spring,Clothing,8.351449394939493
+Spring,Electronics,8.25933296582139
+Spring,Furniture,8.310266129032257
+Spring,Groceries,8.470161793925632
+Spring,Toys,8.457509673852957
+Summer,Clothing,8.454073971078977
+Summer,Electronics,8.400093638116221
+Summer,Furniture,8.381509381898455
+Summer,Groceries,8.284983597594314
+Summer,Toys,8.460402869757175
+Winter,Clothing,8.353349740224228
+Winter,Electronics,8.256149537944554
+Winter,Furniture,8.227714519204577
+Winter,Groceries,8.341691708402895
+Winter,Toys,8.476856435643564
