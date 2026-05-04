@@ -1,0 +1,48 @@
+🚀 Just completed my first end-to-end Business Analyst portfolio project — and I want to share what I built and what I learned.
+
+📦 Project: Retail Stock-Out Reduction
+Dataset: 73,100 rows | 5 stores | 20 products | 5 categories
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+🔍 What I did as a BA:
+
+✅ Phase 1 — Defined the business problem and project scope
+✅ Phase 2 — Built a Data Dictionary, 5 User Stories, and a full BRD (Business Requirements Document)
+✅ Phase 3 — Python analysis (pandas + matplotlib) covering all 5 user stories
+✅ Phase 4 — 8-slide PowerPoint deck + interactive HTML dashboard
+✅ Phase 5 — PDF case study + GitHub portfolio packaging
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 3 Findings that surprised me:
+
+1️⃣ Every single category showed ~33% low-stock AND ~37% overstock simultaneously.
+This told me the problem wasn't the products — it was the replenishment model itself.
+
+2️⃣ The forecast model had zero seasonal weighting.
+MAE barely moved from 8.32 to 8.40 across all 4 seasons — meaning the system treats Winter the same as Summer.
+
+3️⃣ Promotions ran on 50% of all trading days — and delivered zero incremental demand.
+137.8 units sold on normal days vs 137.6 on promo days. That's a question every operations director should be asking.
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+🛠️ Tools I used:
+• Python (pandas, matplotlib, seaborn)
+• Google Colab → VS Code
+• Git + GitHub
+• Microsoft Word + PowerPoint
+• ReportLab (PDF generation)
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+This project taught me that being a good BA isn't just about the analysis —
+it's about asking the right questions, flagging data quality issues, and translating numbers into decisions.
+
+Full project on GitHub 👇
+🔗 github.com/BanothDeepak/retail-stockout-ba-project
+
+If you're also transitioning into a BA role, feel free to connect — happy to share resources!
+
+#BusinessAnalyst #DataAnalysis #Python #Portfolio #CareerChange #BACareer #DataDriven
