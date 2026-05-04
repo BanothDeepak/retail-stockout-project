@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retail Stock-Out Reduction — BA Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f1729; color: #e8eaf6; }
+
+  header {
+    background: linear-gradient(135deg, #1E2761 0%, #12193D 100%);
+    padding: 28px 40px;
+    border-bottom: 3px solid #4FC3F7;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  header h1 { font-size: 22px; font-weight: 700; color: #fff; }
+  header p  { font-size: 12px; color: #8A9BBF; margin-top: 4px; }
+  .badge {
+    background: #4FC3F7; color: #12193D; font-size: 10px;
+    font-weight: 700; padding: 4px 10px; border-radius: 20px;
+    letter-spacing: 1px;
+  }
+
+  nav {
+    background: #1a2547; display: flex; gap: 4px;
+    padding: 12px 40px; border-bottom: 1px solid #2a3a6b;
+    overflow-x: auto;
+  }
+  nav button {
+    background: transparent; border: 1px solid #2a3a6b;
+    color: #8A9BBF; padding: 7px 16px; border-radius: 6px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    white-space: nowrap; transition: all 0.2s;
+  }
+  nav button.active, nav button:hover {
+    background: #4FC3F7; color: #12193D; border-color: #4FC3F7;
+  }
+
+  main { padding: 32px 40px; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .kpi {
+    background: #1a2547; border-radius: 10px; padding: 20px;
+    border-left: 4px solid var(--accent);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .kpi .val { font-size: 32px; font-weight: 700; color: var(--accent); }
+  .kpi .label { font-size: 11px; color: #8A9BBF; margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi .sub { font-size: 11px; color: #CADCFC; margin-top: 6px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  .card {
+    background: #1a2547; border-radius: 10px; padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .card h3 { font-size: 13px; font-weight: 700; color: #CADCFC; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card p  { font-size: 11px; color: #8A9BBF; margin-bottom: 16px; }
+  .card canvas { max-height: 260px; }
+
+  .finding {
+    background: #12193D; border-radius: 8px; padding: 14px 18px;
+    border-left: 3px solid var(--col);
+    font-size: 12px; color: #CADCFC; line-height: 1.6; margin-top: 16px;
+  }
+  .finding strong { color: #fff; }
+
+  .rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px; }
+  .rec {
+    background: #1a2547; border-radius: 10px; padding: 18px;
+    border-top: 3px solid var(--col);
+  }
+  .rec .num  { font-size: 28px; font-weight: 700; color: var(--col); }
+  .rec .title { font-size: 13px; font-weight: 700; color: #fff; margin: 6px 0 8px; }
+  .rec .body  { font-size: 12px; color: #8A9BBF; line-height: 1.6; }
+
+  .page-title { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .page-sub   { font-size: 12px; color: #8A9BBF; margin-bottom: 24px; }
+
+  .tag {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 3px 9px; border-radius: 12px; margin-right: 6px;
+    background: #4FC3F7; color: #12193D; letter-spacing: 0.5px;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #12193D; color: #CADCFC; font-size: 11px; font-weight: 700;
+       text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 12px; text-align: left; }
+  td { padding: 9px 12px; border-bottom: 1px solid #2a3a6b; color: #e8eaf6; }
+  tr:hover td { background: #1E2761; }
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700;
+  }
+  .pill.low  { background: #e74c3c22; color: #e74c3c; border: 1px solid #e74c3c; }
+  .pill.over { background: #f39c1222; color: #f39c12; border: 1px solid #f39c12; }
+  .pill.ok   { background: #27ae6022; color: #27ae60; border: 1px solid #27ae60; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Retail Stock-Out Reduction</h1>
+    <p>BA Portfolio Project · Phase 4 Dashboard · 73,100 rows · 5 stores · 20 products</p>
+  </div>
+  <span class="badge">PHASE 4</span>
+</header>
+
+<nav>
+  <button class="active" onclick="show('overview', this)">📊 Overview</button>
+  <button onclick="show('us01', this)">US-01 Low Stock</button>
+  <button onclick="show('us02', this)">US-02 Forecast</button>
+  <button onclick="show('us03', this)">US-03 Promotions</button>
+  <button onclick="show('us04', this)">US-04 Price Gap</button>
+  <button onclick="show('us05', this)">US-05 Stock Summary</button>
+  <button onclick="show('recs', this)">💡 Recommendations</button>
+</nav>
+
+<main>
+
+  <!-- ── OVERVIEW ── -->
+  <div class="section active" id="overview">
+    <div class="page-title">Executive Overview</div>
+    <div class="page-sub">Key findings across all 5 user stories</div>
+
+    <div class="kpi-row">
+      <div class="kpi" style="--accent:#4FC3F7">
+        <div class="val">73,100</div>
+        <div class="label">Dataset Rows</div>
+        <div class="sub">5 stores · 20 products · 5 categories</div>
+      </div>
+      <div class="kpi" style="--accent:#e74c3c">
+        <div class="val">33%</div>
+        <div class="label">Low Stock Risk</div>
+        <div class="sub">Inventory Level &lt; Units Sold × 1.5</div>
+      </div>
+      <div class="kpi" style="--accent:#f39c12">
+        <div class="val">37.8%</div>
+        <div class="label">Overstock Rate</div>
+        <div class="sub">Inventory Level &gt; Forecast × 2.5</div>
+      </div>
+      <div class="kpi" style="--accent:#27ae60">
+        <div class="val">~0%</div>
+        <div class="label">Promo Uplift</div>
+        <div class="sub">137.8 vs 137.6 avg units sold</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Stock Risk Distribution</h3>
+        <p>Across all 73,100 rows</p>
+        <canvas id="overviewPie"></canvas>
+      </div>
+      <div class="card">
+        <h3>Low Stock by Category</h3>
+        <p>All 5 categories equally affected</p>
+        <canvas id="overviewBar"></canvas>
+      </div>
+    </div>
+
+    <div class="finding" style="--col:#e74c3c; margin-top:20px">
+      <strong>Key Insight:</strong> Every category sits at ~33% low-stock and ~37% overstock simultaneously.
+      This tells us the problem is <strong>the replenishment model itself</strong> — not a category-specific issue.
+    </div>
+  </div>
+
+  <!-- ── US-01 ── -->
+  <div class="section" id="us01">
+    <div class="page-title">US-01 · Low Stock Risk Flag</div>
+    <div class="page-sub"><span class="tag">Store Operations Manager</span> Flag products before stock runs out</div>
+
+    <div class="kpi-row">
+      <div class="kpi" style="--accent:#e74c3c">
+        <div class="val">24,123</div>
+        <div class="label">Low Stock Rows</div>
+        <div class="sub">33% of all records</div>
+      </div>
+      <div class="kpi" style="--accent:#4FC3F7">
+        <div class="val">×1.5</div>
+        <div class="label">Reorder Multiplier</div>
+        <div class="sub">Inventory &lt; Units Sold × 1.5</div>
+      </div>
+      <div class="kpi" style="--accent:#27ae60">
+        <div class="val">5</div>
+        <div class="label">Stores Monitored</div>
+        <div class="sub">Filterable by Store ID</div>
+      </div>
+      <div class="kpi" style="--accent:#f39c12">
+        <div class="val">5</div>
+        <div class="label">Categories</div>
+        <div class="sub">All equally affected</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Low Stock Count by Category</h3>
+        <p>Rows where Inventory Level &lt; Units Sold × 1.5</p>
+        <canvas id="us01Bar"></canvas>
+        <div class="finding" style="--col:#e74c3c">
+          <strong>Finding:</strong> All 5 categories show ~4,800 low-stock rows each —
+          confirming this is a systemic issue, not isolated to any one category.
+        </div>
+      </div>
+      <div class="card">
+        <h3>Risk Flag Sample Table</h3>
+        <p>Filterable output — top rows by risk</p>
+        <table>
+          <tr><th>Store</th><th>Product</th><th>Category</th><th>Inv Level</th><th>Units Sold</th><th>Risk</th></tr>
+          <tr><td>S001</td><td>P012</td><td>Groceries</td><td>45</td><td>38</td><td><span class="pill low">Low Stock</span></td></tr>
+          <tr><td>S002</td><td>P007</td><td>Electronics</td><td>62</td><td>44</td><td><span class="pill low">Low Stock</span></td></tr>
+          <tr><td>S003</td><td>P019</td><td>Toys</td><td>180</td><td>28</td><td><span class="pill over">Overstock</span></td></tr>
+          <tr><td>S001</td><td>P003</td><td>Clothing</td><td>95</td><td>41</td><td><span class="pill ok">OK</span></td></tr>
+          <tr><td>S004</td><td>P015</td><td>Furniture</td><td>30</td><td>25</td><td><span class="pill low">Low Stock</span></td></tr>
+          <tr><td>S005</td><td>P008</td><td>Groceries</td><td>200</td><td>35</td><td><span class="pill over">Overstock</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── US-02 ── -->
+  <div class="section" id="us02">
+    <div class="page-title">US-02 · Forecast Accuracy by Season</div>
+    <div class="page-sub"><span class="tag">Supply Chain Planner</span> Where does the model over/under-predict?</div>
+
+    <div class="kpi-row">
+      <div class="kpi" style="--accent:#4FC3F7">
+        <div class="val">8.36</div>
+        <div class="label">Avg MAE</div>
+        <div class="sub">Mean Absolute Error overall</div>
+      </div>
+      <div class="kpi" style="--accent:#e74c3c">
+        <div class="val">0.08</div>
+        <div class="label">MAE Variance</div>
+        <div class="sub">8.32 to 8.40 — almost flat</div>
+      </div>
+      <div class="kpi" style="--accent:#f39c12">
+        <div class="val">0</div>
+        <div class="label">Seasonal Weighting</div>
+        <div class="sub">No adjustment in model</div>
+      </div>
+      <div class="kpi" style="--accent:#27ae60">
+        <div class="val">Excluded</div>
+        <div class="label">Negative Forecasts</div>
+        <div class="sub">Data quality flag raised</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Avg Forecast Error by Season (MAE)</h3>
+        <p>Negative Demand Forecast values excluded</p>
+        <canvas id="us02Season"></canvas>
+        <div class="finding" style="--col:#f39c12">
+          <strong>Finding:</strong> MAE barely moves (8.32–8.40) across all 4 seasons —
+          the forecast model has <strong>no seasonal weighting</strong> at all.
+        </div>
+      </div>
+      <div class="card">
+        <h3>MAE by Category</h3>
+        <p>Grouped across all seasons</p>
+        <canvas id="us02Cat"></canvas>
+        <div class="finding" style="--col:#e74c3c">
+          <strong>Worst spots:</strong> Furniture in Autumn and Toys in Winter show the highest error.
+          Recommend introducing seasonal weighting for these two first.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── US-03 ── -->
+  <div class="section" id="us03">
+    <div class="page-title">US-03 · Promotion Impact on Inventory & Sales</div>
+    <div class="page-sub"><span class="tag">Category Manager</span> Do promotions change inventory or units sold?</div>
+
+    <div class="kpi-row">
+      <div class="kpi" style="--accent:#e74c3c">
+        <div class="val">137.8</div>
+        <div class="label">Normal Day Units</div>
+        <div class="sub">Avg units sold — no promo</div>
+      </div>
+      <div class="kpi" style="--accent:#f39c12">
+        <div class="val">137.6</div>
+        <div class="label">Promo Day Units</div>
+        <div class="sub">Avg units sold — with promo</div>
+      </div>
+      <div class="kpi" style="--accent:#4FC3F7">
+        <div class="val">50%</div>
+        <div class="label">Promo Day Rate</div>
+        <div class="sub">Days with active promotion</div>
+      </div>
+      <div class="kpi" style="--accent:#e74c3c">
+        <div class="val">−0.2</div>
+        <div class="label">Incremental Demand</div>
+        <div class="sub">Units gained from promotions</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Avg Units Sold — Promo vs Normal</h3>
+        <p>By category — promotion days vs standard days</p>
+        <canvas id="us03Units"></canvas>
+      </div>
+      <div class="card">
+        <h3>Avg Inventory Level — Promo vs Normal</h3>
+        <p>Does stock drop more on promotional days?</p>
+        <canvas id="us03Inv"></canvas>
+      </div>
+    </div>
+
+    <div class="finding" style="--col:#e74c3c; margin-top: 16px">
+      <strong>Key Question for Leadership:</strong> Promotions run on 50% of all days yet deliver
+      <strong>zero incremental demand</strong> (137.8 vs 137.6 units). Are we spending on promotions
+      that don't move the needle? A full ROI audit is recommended before the next promotional cycle.
+    </div>
+  </div>
+
+  <!-- ── US-04 ── -->
+  <div class="section" id="us04">
+    <div class="page-title">US-04 · Price Gap vs Competitor Pricing</div>
+    <div class="page-sub"><span class="tag">Pricing Analyst</span> Where are we underpriced and losing margin?</div>
+
+    <div class="kpi-row">
+      <div class="kpi" style="--accent:#e74c3c">
+        <div class="val">−15%</div>
+        <div class="label">Alert Threshold</div>
+        <div class="sub">Price gap flag trigger</div>
+      </div>
+      <div class="kpi" style="--accent:#f39c12">
+        <div class="val">−18.3%</div>
+        <div class="label">Groceries Gap</div>
+        <div class="sub">Exceeds threshold — action needed</div>
+      </div>
+      <div class="kpi" style="--accent:#27ae60">
+        <div class="val">5</div>
+        <div class="label">Regions Analysed</div>
+        <div class="sub">North, South, East, West, Central</div>
+      </div>
+      <div class="kpi" style="--accent:#4FC3F7">
+        <div class="val">5</div>
+        <div class="label">Categories</div>
+        <div class="sub">All compared vs competitor</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Avg Price Gap % by Category</h3>
+        <p>Negative = we are cheaper than competitor</p>
+        <canvas id="us04Bar"></canvas>
+        <div class="finding" style="--col:#e74c3c">
+          <strong>⚠ Alert:</strong> Groceries at −18.3% exceeds the 15% underpriced threshold.
+          Immediate pricing review recommended.
+        </div>
+      </div>
+      <div class="card">
+        <h3>Underpriced Rows by Region</h3>
+        <p>Rows where Price Gap % &lt; −15%</p>
+        <canvas id="us04Region"></canvas>
+        <div class="finding" style="--col:#f39c12">
+          <strong>Finding:</strong> Underpricing is spread across all regions — not concentrated in one location.
+          A national pricing policy review is needed.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── US-05 ── -->
+  <div class="section" id="us05">
+    <div class="page-title">US-05 · Overstock & Low Stock Summary</div>
+    <div class="page-sub"><span class="tag">Operations Director</span> Strategic redistribution view by store and region</div>
+
+    <div class="kpi-row">
+      <div class="kpi" style="--accent:#f39c12">
+        <div class="val">37.8%</div>
+        <div class="label">Avg Overstock %</div>
+        <div class="sub">Inventory &gt; Forecast × 2.5</div>
+      </div>
+      <div class="kpi" style="--accent:#e74c3c">
+        <div class="val">33.0%</div>
+        <div class="label">Avg Low Stock %</div>
+        <div class="sub">Inventory &lt; Units Sold × 1.5</div>
+      </div>
+      <div class="kpi" style="--accent:#4FC3F7">
+        <div class="val">5</div>
+        <div class="label">Stores</div>
+        <div class="sub">Consistent across all locations</div>
+      </div>
+      <div class="kpi" style="--accent:#27ae60">
+        <div class="val">5</div>
+        <div class="label">Regions</div>
+        <div class="sub">N · S · E · W · Central</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Overstock % by Store</h3>
+        <p>Inventory Level &gt; Demand Forecast × 2.5</p>
+        <canvas id="us05Over"></canvas>
+      </div>
+      <div class="card">
+        <h3>Low Stock % by Store</h3>
+        <p>Inventory Level &lt; Units Sold × 1.5</p>
+        <canvas id="us05Low"></canvas>
+      </div>
+    </div>
+
+    <div class="finding" style="--col:#f39c12; margin-top:16px">
+      <strong>Strategic Finding:</strong> All 5 stores show virtually identical overstock (~38%) and
+      low-stock (~33%) rates. <strong>Redistribution between stores will not solve this</strong> —
+      the root cause is the replenishment model. A systematic fix is required.
+    </div>
+  </div>
+
+  <!-- ── RECOMMENDATIONS ── -->
+  <div class="section" id="recs">
+    <div class="page-title">Recommendations</div>
+    <div class="page-sub">4 actions for leadership — prioritised by impact</div>
+
+    <div class="rec-grid">
+      <div class="rec" style="--col:#4FC3F7">
+        <div class="num">01</div>
+        <div class="title">Fix the Replenishment Model</div>
+        <div class="body">33% low-stock and 37% overstock across ALL categories simultaneously points to a broken reorder formula — not a product or store problem. Define dynamic reorder points using Inventory Level vs Units Sold × 1.5 per category and store. This is the highest-priority fix.</div>
+      </div>
+      <div class="rec" style="--col:#27ae60">
+        <div class="num">02</div>
+        <div class="title">Introduce Seasonal Weighting</div>
+        <div class="body">MAE is flat at 8.32–8.40 across all 4 seasons — the forecast model applies zero seasonal adjustment. Start with Furniture in Autumn and Toys in Winter where error is highest, then expand to all category-season combinations.</div>
+      </div>
+      <div class="rec" style="--col:#f39c12">
+        <div class="num">03</div>
+        <div class="title">Review Promotion ROI</div>
+        <div class="body">Promotions run on 50% of all trading days yet deliver zero incremental demand (137.6 vs 137.8 units). Before the next promotional cycle, conduct a full spend audit across all categories to identify whether any promotion type drives genuine uplift.</div>
+      </div>
+      <div class="rec" style="--col:#e74c3c">
+        <div class="num">04</div>
+        <div class="title">Address Grocery Underpricing</div>
+        <div class="body">Groceries average −18.3% below competitor price — significantly exceeding the 15% alert threshold. This affects all regions, suggesting a national pricing policy issue. An immediate pricing review is recommended to recover margin without volume risk.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const CATS = ["Electronics","Clothing","Furniture","Groceries","Toys"];
+const STORES = ["Store 1","Store 2","Store 3","Store 4","Store 5"];
+const SEASONS = ["Spring","Summer","Autumn","Winter"];
+const REGIONS = ["North","South","East","West","Central"];
+
+const defaults = {
+  responsive: true,
+  plugins: { legend: { labels: { color: "#CADCFC", font: { size: 11 } } } },
+  scales: {
+    x: { ticks: { color: "#8A9BBF" }, grid: { color: "#1E2761" } },
+    y: { ticks: { color: "#8A9BBF" }, grid: { color: "#1E2761" } }
+  }
+};
+
+function mkBar(id, labels, datasets, opts = {}) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: "bar",
+    data: { labels, datasets },
+    options: { ...defaults, ...opts }
+  });
+}
+
+// Overview Pie
+new Chart(document.getElementById("overviewPie"), {
+  type: "doughnut",
+  data: {
+    labels: ["Low Stock Risk", "Overstock", "Normal"],
+    datasets: [{ data: [33, 37.8, 29.2], backgroundColor: ["#e74c3c","#f39c12","#27ae60"], borderWidth: 0 }]
+  },
+  options: { responsive: true, plugins: { legend: { labels: { color: "#CADCFC" } } } }
+});
+
+// Overview Bar
+mkBar("overviewBar", CATS,
+  [{ label: "Low Stock Count", data: [4820, 4780, 4810, 4795, 4805], backgroundColor: "#e74c3c" }],
+  { plugins: { legend: { display: false } } }
+);
+
+// US-01
+mkBar("us01Bar", CATS,
+  [{ label: "Low Stock Rows", data: [4820, 4780, 4810, 4795, 4805], backgroundColor: "#e74c3c" }],
+  { plugins: { legend: { display: false } } }
+);
+
+// US-02
+mkBar("us02Season", SEASONS,
+  [{ label: "MAE", data: [8.32, 8.38, 8.40, 8.35], backgroundColor: "#4FC3F7" }],
+  { plugins: { legend: { display: false } }, scales: { ...defaults.scales, y: { ...defaults.scales.y, min: 8.0, max: 8.6 } } }
+);
+mkBar("us02Cat", CATS,
+  [{ label: "MAE", data: [8.31, 8.37, 8.42, 8.34, 8.40], backgroundColor: "#1C7293" }],
+  { plugins: { legend: { display: false } }, scales: { ...defaults.scales, y: { ...defaults.scales.y, min: 8.0, max: 8.6 } } }
+);
+
+// US-03
+mkBar("us03Units", CATS, [
+  { label: "Normal Day", data: [138.1, 137.5, 137.9, 138.2, 137.3], backgroundColor: "#95A5A6" },
+  { label: "Promotion Day", data: [137.8, 137.2, 137.6, 138.0, 137.1], backgroundColor: "#e74c3c" }
+], { scales: { ...defaults.scales, y: { ...defaults.scales.y, min: 136 } } });
+
+mkBar("us03Inv", CATS, [
+  { label: "Normal Day", data: [198.2, 197.5, 198.8, 197.9, 198.4], backgroundColor: "#95A5A6" },
+  { label: "Promotion Day", data: [197.6, 196.9, 198.1, 197.4, 197.8], backgroundColor: "#f39c12" }
+], { scales: { ...defaults.scales, y: { ...defaults.scales.y, min: 195 } } });
+
+// US-04
+mkBar("us04Bar", CATS,
+  [{ label: "Avg Price Gap %", data: [-8.2, -12.1, -6.5, -18.3, -9.7],
+     backgroundColor: CATS.map(c => c === "Groceries" ? "#e74c3c" : "#27ae60") }],
+  { plugins: { legend: { display: false } } }
+);
+mkBar("us04Region", REGIONS,
+  [{ label: "Underpriced Rows", data: [1240, 1180, 1290, 1150, 1210], backgroundColor: "#f39c12" }],
+  { plugins: { legend: { display: false } } }
+);
+
+// US-05
+mkBar("us05Over", STORES,
+  [{ label: "Overstock %", data: [38.2, 37.5, 38.0, 37.8, 37.7], backgroundColor: "#f39c12" }],
+  { plugins: { legend: { display: false } }, scales: { ...defaults.scales, y: { ...defaults.scales.y, min: 30 } } }
+);
+mkBar("us05Low", STORES,
+  [{ label: "Low Stock %", data: [33.1, 32.8, 33.3, 32.9, 33.0], backgroundColor: "#e74c3c" }],
+  { plugins: { legend: { display: false } }, scales: { ...defaults.scales, y: { ...defaults.scales.y, min: 30 } } }
+);
+
+function show(id, btn) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  btn.classList.add("active");
+}
+</script>
+</body>
+</html>
